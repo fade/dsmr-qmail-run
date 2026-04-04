@@ -1,0 +1,187 @@
+#!/bin/bash
+# qmailctl — DSMR qmail service management script.
+#
+# Manages: qmail-send, qmail-smtpd (port 25), qmail-submission (port 587)
+# Based on the sagredo-dev qmailctl by Roberto Puzzanghera.
+
+# Services managed by this script
+svclist="qmail-send qmail-smtpd qmail-submission"
+# Services monitored (status display only, not managed)
+servicelist="dovecot postgresql"
+
+QMAILDIR=$(getent passwd qmaild | cut -d: -f6)
+TCPRULES_DIR=$QMAILDIR/control
+
+PATH=$QMAILDIR/bin:/bin:/usr/bin:/usr/local/bin
+export PATH
+
+show_uptime() {
+    local svc="$1"
+    local re='^[0-9]+$'
+    local org sec d h m s
+
+    org="$(svstat /service/$svc 2>/dev/null | awk '{print $2,$3,$4;}' \
+        | sed 's/up/[ up ]/g' | sed 's/down/[ down ]/g' \
+        | sed ''/up/s//`printf "\033[1;32mup\033[0m"`/'' \
+        | sed ''/down/s//`printf "\033[1;31mdown\033[0m"`/'')"
+    sec="$(svstat /service/$svc 2>/dev/null | awk '{print $5;}')"
+    if ! [[ $sec =~ $re ]]; then
+        sec="$(svstat /service/$svc 2>/dev/null | awk '{print $3;}')"
+    fi
+
+    d=$(( sec / 86400 ))
+    h=$(( (sec - d * 86400) / 3600 ))
+    m=$(( (sec - d * 86400 - h * 3600) / 60 ))
+    s=$(( sec - d * 86400 - h * 3600 - m * 60 ))
+
+    if [ "$sec" -le 60 ] 2>/dev/null; then
+        if [[ "$(svstat /service/$svc 2>/dev/null | awk '{print $2}')" = 'down' ]]; then
+            printf "%-28s %s\n" "$svc:" "$org"
+        else
+            printf "%-28s %s %s seconds\n" "$svc:" "$org" "$s"
+        fi
+    else
+        printf "%-28s %s %3s day(s), %02d:%02d:%02d\n" "$svc:" "$org" "$d" "$h" "$m" "$s"
+    fi
+}
+
+svscan_check() {
+    if ! pgrep -x svscan >/dev/null 2>&1; then
+        echo "qmail not running. Start with: systemctl start daemontools-run"
+        exit 1
+    fi
+}
+
+case "$1" in
+    start)
+        svscan_check
+        echo "Starting qmail services..."
+        for svc in $svclist; do
+            if svok /service/$svc 2>/dev/null; then
+                svc -u /service/$svc
+                echo "  started: $svc"
+            else
+                echo "  supervise not running for: $svc"
+            fi
+        done
+        ;;
+
+    stop)
+        svscan_check
+        echo "Stopping qmail services..."
+        for svc in $svclist; do
+            if [ -d /service/$svc ]; then
+                svc -d /service/$svc
+                echo "  stopped: $svc"
+            fi
+        done
+        ;;
+
+    restart)
+        svscan_check
+        echo "Restarting qmail services..."
+        # Stop smtpd/submission first, terminate send, then restart all.
+        for svc in qmail-smtpd qmail-submission; do
+            [ -d /service/$svc ] && svc -d /service/$svc && echo "  stopped: $svc"
+        done
+        svc -t /service/qmail-send
+        echo "  restarted: qmail-send"
+        for svc in qmail-smtpd qmail-submission; do
+            [ -d /service/$svc ] && svc -u /service/$svc && echo "  started: $svc"
+        done
+        ;;
+
+    stat)
+        svscan_check
+        echo ""
+        for svc in $svclist; do
+            if [ ! -d /service/$svc ]; then
+                printf "%-28s not found\n" "$svc:"
+            else
+                show_uptime "$svc"
+                show_uptime "$svc/log"
+            fi
+        done
+        echo ""
+        for service in $servicelist; do
+            printf "%-28s " "$service:"
+            if pgrep -x "$service" >/dev/null 2>&1 || \
+               systemctl is-active --quiet "$service" 2>/dev/null; then
+                printf "\033[1;32mrunning\033[0m\n"
+            else
+                printf "\033[1;31mstopped\033[0m\n"
+            fi
+        done
+        echo ""
+        qmail-qstat
+        ;;
+
+    pause)
+        svscan_check
+        for svc in $svclist; do
+            echo "Pausing $svc"
+            svc -p /service/$svc
+        done
+        ;;
+
+    cont)
+        svscan_check
+        for svc in $svclist; do
+            echo "Continuing $svc"
+            svc -c /service/$svc
+        done
+        ;;
+
+    doqueue|alrm|flush)
+        svscan_check
+        echo "Sending ALRM to qmail-send (process queued messages now)."
+        svc -a /service/qmail-send
+        ;;
+
+    queue)
+        qmail-qstat
+        qmail-qread
+        ;;
+
+    reload|hup)
+        svscan_check
+        echo "Sending HUP to qmail-send (re-read locals and virtualdomains)."
+        svc -h /service/qmail-send
+        ;;
+
+    cdb)
+        tcprules "$TCPRULES_DIR/tcp.smtp.cdb" \
+                 "$TCPRULES_DIR/tcp.smtp.tmp" \
+            < "$TCPRULES_DIR/tcp.smtp"
+        echo "Rebuilt tcp.smtp.cdb"
+        tcprules "$TCPRULES_DIR/tcp.submission.cdb" \
+                 "$TCPRULES_DIR/tcp.submission.tmp" \
+            < "$TCPRULES_DIR/tcp.submission"
+        echo "Rebuilt tcp.submission.cdb"
+        ;;
+
+    help)
+        cat <<HELP
+     start -- start all qmail services
+      stop -- stop all qmail services
+   restart -- restart all qmail services
+      stat -- show service status and queue summary
+     pause -- pause all services (accept connections, hold delivery)
+      cont -- resume paused services
+   doqueue -- send ALRM to qmail-send (deliver queued messages now)
+     flush -- same as doqueue
+      alrm -- same as doqueue
+    reload -- send HUP to qmail-send (re-read locals/virtualdomains)
+       hup -- same as reload
+     queue -- show queue status and contents
+       cdb -- rebuild tcp.smtp.cdb and tcp.submission.cdb from text files
+HELP
+        ;;
+
+    *)
+        echo "Usage: $0 {start|stop|restart|stat|pause|cont|doqueue|flush|reload|queue|cdb|help}"
+        exit 1
+        ;;
+esac
+
+exit 0

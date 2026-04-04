@@ -1,0 +1,9 @@
+1c93c3891a4e5e7de382192048279d07  usr/bin/qmailctl
+880ecc583585e17030f464e8cac51819  usr/lib/dsmr-qmail-run/supervise/qmail-send/log/run
+abe18c749d6786714e6a1838e31437a4  usr/lib/dsmr-qmail-run/supervise/qmail-send/run
+4ce50cae4ddf602b6c06bdbe13c59f99  usr/lib/dsmr-qmail-run/supervise/qmail-smtpd/log/run
+844dc4ee6b3c01c376a6923a8a8dd8cc  usr/lib/dsmr-qmail-run/supervise/qmail-smtpd/run
+6938b96e807dc022d7422a075128d03d  usr/lib/dsmr-qmail-run/supervise/qmail-submission/log/run
+b094d6d1566b2b8eb812dd2da3311be0  usr/lib/dsmr-qmail-run/supervise/qmail-submission/run
+44887e4d29cf8f45a20ca396bba4f7f8  usr/share/doc/dsmr-qmail-run/changelog.Debian.gz
+9a33b9efdebe08c0f46877d6f5a6f96c  usr/share/doc/dsmr-qmail-run/copyright

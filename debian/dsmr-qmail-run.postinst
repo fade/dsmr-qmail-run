@@ -1,0 +1,81 @@
+#!/bin/sh
+set -e
+
+ETCQMAIL=/etc/qmail
+SERVICE=/etc/service
+LIBDIR=/usr/lib/dsmr-qmail-run/supervise
+
+# Install or refresh a supervised service tree under /etc/qmail/ and create
+# (or update) the corresponding /etc/service/ symlink.
+install_service() {
+    svc="$1"
+    install -d -m 755 "$ETCQMAIL/$svc"
+    install -d -m 755 "$ETCQMAIL/$svc/log"
+    install -m 755 "$LIBDIR/$svc/run"     "$ETCQMAIL/$svc/run"
+    install -m 755 "$LIBDIR/$svc/log/run" "$ETCQMAIL/$svc/log/run"
+    # Create or update the /etc/service/ symlink.
+    ln -sfn "$ETCQMAIL/$svc" "$SERVICE/$svc"
+}
+
+case "$1" in
+    configure)
+        # ── Retire qmail-verify ───────────────────────────────────────────────
+        # The DSMR stack does not ship qmail-verify. Stop it gracefully and
+        # remove its /etc/service entry so svscan stops managing it.
+        if [ -x /usr/bin/svc ] && svok "$SERVICE/qmail-verify" 2>/dev/null; then
+            echo "dsmr-qmail-run: stopping qmail-verify..."
+            svc -d "$SERVICE/qmail-verify" 2>/dev/null || true
+            sleep 1
+        fi
+        rm -f "$SERVICE/qmail-verify"
+
+        # ── Install/refresh service trees ─────────────────────────────────────
+        for svc in qmail-send qmail-smtpd qmail-submission; do
+            install_service "$svc"
+        done
+
+        # ── Ensure daemontools-run is enabled and active ──────────────────────
+        if command -v systemctl >/dev/null 2>&1; then
+            systemctl enable daemontools-run 2>/dev/null || true
+            if ! systemctl is-active --quiet daemontools-run 2>/dev/null; then
+                systemctl start daemontools-run 2>/dev/null || true
+            fi
+        fi
+
+        # ── Start / reload services ───────────────────────────────────────────
+        if command -v svc >/dev/null 2>&1; then
+            if [ -z "$2" ]; then
+                # Fresh install: bring services up (svscan may not have
+                # scanned yet, or run scripts may have exited before qmail
+                # finished configuring).
+                sleep 1
+                for svc in qmail-send qmail-smtpd qmail-submission; do
+                    if svok "$SERVICE/$svc" 2>/dev/null; then
+                        echo "dsmr-qmail-run: starting $svc..."
+                        svc -u "$SERVICE/$svc" || true
+                    fi
+                done
+            else
+                # Upgrade: reload run scripts without dropping connections.
+                for svc in qmail-send qmail-smtpd; do
+                    if svok "$SERVICE/$svc" 2>/dev/null; then
+                        echo "dsmr-qmail-run: reloading $svc..."
+                        svc -t "$SERVICE/$svc" || true
+                    fi
+                done
+            fi
+        fi
+        ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+
+    *)
+        echo "postinst called with unknown argument '$1'" >&2
+        exit 1
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

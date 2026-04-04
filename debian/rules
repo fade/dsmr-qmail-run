@@ -1,0 +1,20 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	# Make all run scripts and qmailctl executable before installation.
+	find supervise -name run -exec chmod 755 {} +
+	chmod 755 scripts/qmailctl
+
+override_dh_auto_install:
+	# Install supervise scripts to /usr/lib/dsmr-qmail-run/supervise/
+	for svc in qmail-send qmail-smtpd qmail-submission; do \
+		install -D -m 755 supervise/$$svc/run \
+			debian/dsmr-qmail-run/usr/lib/dsmr-qmail-run/supervise/$$svc/run; \
+		install -D -m 755 supervise/$$svc/log/run \
+			debian/dsmr-qmail-run/usr/lib/dsmr-qmail-run/supervise/$$svc/log/run; \
+	done
+	install -D -m 755 scripts/qmailctl \
+		debian/dsmr-qmail-run/usr/bin/qmailctl

@@ -1,0 +1,22 @@
+Package: dsmr-qmail-run
+Version: 1.0-4
+Architecture: all
+Maintainer: Brian O'Reilly <fade@deepsky.com>
+Installed-Size: 36
+Depends: qmail (>= 1.06.3), daemontools-run, vpopmail (>= 5.6.13), ucspi-tcp6 | ucspi-tcp
+Conflicts: qmail-run
+Replaces: qmail-run
+Section: mail
+Priority: optional
+Description: runtime service configuration for the DSMR qmail stack
+ Provides supervised service trees for qmail-send, qmail-smtpd (port 25),
+ and qmail-submission (port 587 with authentication), along with the
+ qmailctl management script and systemd integration via daemontools-run.
+ .
+ On install, this package:
+  - Removes the old qmail-verify service (not used by this stack)
+  - Creates /etc/qmail/qmail-{send,smtpd,submission}/ service trees
+  - Symlinks services into /etc/service/ for svscan supervision
+  - Ensures daemontools-run.service is enabled and active
+ .
+ Replaces the upstream qmail-run package.

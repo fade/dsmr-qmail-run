@@ -1,0 +1,30 @@
+dsmr-qmail-run (1.0-4) trixie; urgency=high
+
+  * qmail-smtpd/run: do not set ENABLE_SPP=0 when SPP is not configured.
+    The qmail-spp patch treats any presence of ENABLE_SPP (including "0" and
+    empty string) as a trigger to initialise SPP, reading the smtpplugins
+    control file.  When that file is absent, qmail-smtpd exits immediately
+    with "421 unable to read controls", rejecting every inbound connection on
+    port 25.  Fix: only export ENABLE_SPP=1 when smtpplugins + plugins dir
+    both exist; leave the variable unset otherwise.
+
+ -- Brian O'Reilly <fade@deepsky.com>  Sat, 04 Apr 2026 00:00:00 -0400
+
+dsmr-qmail-run (1.0-3) trixie; urgency=medium
+
+  * postinst: run svc -u on fresh install so services start immediately
+    without waiting for svscan rescan
+
+ -- Brian O'Reilly <fade@deepsky.com>  Fri, 03 Apr 2026 15:43:10 -0400
+
+dsmr-qmail-run (1.0-1) trixie; urgency=medium
+
+  * Initial release.
+  * Provides supervised service trees for qmail-send, qmail-smtpd (port 25),
+    and qmail-submission (port 587).
+  * Replaces the upstream qmail-run package (Conflicts/Replaces: qmail-run).
+  * Handles retirement of the qmail-verify service on upgrade.
+  * Installs updated qmailctl managing the three DSMR services.
+  * Ensures daemontools-run.service is enabled and active.
+
+ -- Brian O'Reilly <fade@deepsky.com>  Fri, 03 Apr 2026 00:00:00 +0000
