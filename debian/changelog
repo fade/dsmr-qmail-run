@@ -1,3 +1,38 @@
+dsmr-qmail-run (1.0-9) trixie; urgency=low
+
+  * qmail-submission/run: select SMTP-AUTH backend at exec time.
+    When /var/qmail/bin/checkpassword-dovecot exists (provided by
+    dsmr-checkpassword-dovecot) the bridge is used, routing AUTH through
+    dovecot's chained passdbs so vpopmail virtual users and curated system
+    users authenticate from one source.  When the bridge is absent, falls
+    back to vchkpw, preserving prior behaviour.  Backwards-compatible.
+
+ -- Brian O'Reilly <fade@deepsky.com>  Sun, 10 May 2026 11:00:00 -0400
+
+dsmr-qmail-run (1.0-8) trixie; urgency=low
+
+  * Fix vpasswd-postgres-convert: handle legacy 8-field clear-passwd format
+
+ -- Brian O'Reilly <fade@deepsky.com>  Mon, 13 Apr 2026 13:08:27 -0400
+
+dsmr-qmail-run (1.0-7) trixie; urgency=low
+
+  * Add vpasswd-postgres-convert migration; fix dovecot-mysql→pgsql dependency
+
+ -- Brian O'Reilly <fade@deepsky.com>  Mon, 13 Apr 2026 12:34:57 -0400
+
+dsmr-qmail-run (1.0-6) trixie; urgency=low
+
+  * Raise default softlimit from 12MB to 100MB for modern shared library requirements
+
+ -- Brian O'Reilly <fade@deepsky.com>  Sun, 05 Apr 2026 22:52:53 -0400
+
+dsmr-qmail-run (1.0-5) trixie; urgency=low
+
+  * Fix qmail-uids-gids postinst: make user/group creation idempotent for legacy systems
+
+ -- Brian O'Reilly <fade@deepsky.com>  Sun, 05 Apr 2026 22:32:41 -0400
+
 dsmr-qmail-run (1.0-4) trixie; urgency=high
 
   * qmail-smtpd/run: do not set ENABLE_SPP=0 when SPP is not configured.

@@ -19,9 +19,22 @@ if [ -x "$QMAILDIR/bin/rcptcheck-overlimit" ]; then
     export RCPTCHECKRELAYCLIENT=1
 fi
 
+# Authentication backend selection.
+#
+# checkpassword-dovecot (from dsmr-checkpassword-dovecot, if installed) bridges
+# SMTP-AUTH through dovecot's auth-client protocol, so vpopmail virtual users,
+# curated system users in /etc/dovecot/system-passwd, and PAM accounts all
+# authenticate from one chained passdb.  When the bridge is absent, fall back
+# to vchkpw, which authenticates only vpopmail virtual users.
+if [ -x /var/qmail/bin/checkpassword-dovecot ]; then
+    AUTH_PROG=/var/qmail/bin/checkpassword-dovecot
+else
+    AUTH_PROG=/home/vpopmail/bin/vchkpw
+fi
+
 exec /usr/bin/softlimit -m "$SOFTLIMIT" \
     /usr/bin/tcpserver -v -R -l "$LOCAL" \
     -x "${TCPRULES_DIR}/tcp.submission.cdb" -c "$MAXSMTPD" \
     -u "$QMAILDUID" -g "$NOFILESGID" 0 587 \
     "$QMAILDIR/bin/qmail-smtpd" \
-    /home/vpopmail/bin/vchkpw /bin/true 2>&1
+    "$AUTH_PROG" /bin/true 2>&1
