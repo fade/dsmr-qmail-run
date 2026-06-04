@@ -1,3 +1,16 @@
+dsmr-qmail-run (1.0-12) trixie; urgency=high
+
+  * Make system-first recipient validation opt-in.  The smtpd and submission run
+    scripts now switch to localfirst-rcptcheck only when control/localfirst has
+    "1" on its first line; the mere presence of the binary no longer changes the
+    recipient gate.  Installing or upgrading the stack on a host that has not
+    opted in therefore keeps chkuser exactly as before — an upgrade must never
+    silently change which recipients are accepted.  To enable system-first
+    routing on a host, write "1" to /var/qmail/control/localfirst and cycle the
+    smtpd and submission services.
+
+ -- Brian O'Reilly <fade@deepsky.com>  Thu, 04 Jun 2026 17:45:00 +0000
+
 dsmr-qmail-run (1.0-11) trixie; urgency=low
 
   * Become the system mail-transport-agent.  Provide/Conflict/Replace the
