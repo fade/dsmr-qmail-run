@@ -1,0 +1,28 @@
+Debian MTA SHOULD-commands — future enhancement
+================================================
+
+dsmr-qmail-run claims the mail-transport-agent role and ships:
+
+  * /usr/sbin/sendmail  -> /usr/sbin/qmail-sendmail   (required; faithful)
+  * /usr/bin/mailq      -> /usr/sbin/qmail-qstat      (best-effort)
+  * /usr/sbin/newaliases : no-op stub                 (best-effort)
+
+The two best-effort commands are approximations and should be improved:
+
+  - mailq: qmail-qstat reports queue counts, not the per-message mailq(8)
+    listing.  A wrapper that renders qmail-qread output in mailq format would
+    be a faithful replacement.
+
+  - newaliases: qmail does not use /etc/aliases (aliasing is ~alias/.qmail).
+    If /etc/aliases compatibility is wanted, integrate fastforward's
+    newaliases (fastforward is already Suggested by the qmail package) and
+    point /usr/sbin/newaliases at it instead of the no-op stub.
+
+Until then the stubs satisfy "default-mta | mail-transport-agent" dependents
+without breaking programs that call these commands.
+
+Man pages
+---------
+sendmail(8), mailq(1), and newaliases(8) currently have no man pages in this
+package (lintian no-manual-page is overridden).  Ship man pages alongside the
+faithful command implementations above.

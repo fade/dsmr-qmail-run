@@ -4,9 +4,9 @@
 	dh $@
 
 override_dh_auto_build:
-	# Make all run scripts and qmailctl executable before installation.
+	# Make all run scripts and helper scripts executable before installation.
 	find supervise -name run -exec chmod 755 {} +
-	chmod 755 scripts/qmailctl
+	chmod 755 scripts/qmailctl scripts/newaliases
 
 override_dh_auto_install:
 	# Install supervise scripts to /usr/lib/dsmr-qmail-run/supervise/
@@ -18,3 +18,8 @@ override_dh_auto_install:
 	done
 	install -D -m 755 scripts/qmailctl \
 		debian/dsmr-qmail-run/usr/bin/qmailctl
+	# Best-effort newaliases for MTA compatibility (qmail has no /etc/aliases;
+	# see debian/TODO).  sendmail/mailq symlinks are handled by dh_link via
+	# debian/dsmr-qmail-run.links.
+	install -D -m 755 scripts/newaliases \
+		debian/dsmr-qmail-run/usr/sbin/newaliases
