@@ -1,3 +1,15 @@
+dsmr-qmail-run (1.0-10) trixie; urgency=low
+
+  * qmail-smtpd/run, qmail-submission/run: select the recipient validation
+    gate at exec time.  When /var/qmail/bin/localfirst-rcptcheck exists
+    (provided by dsmr-localfirst) it becomes the sole RCPTCHECK gate and
+    chkuser is left off, so system-user recipients on hybrid domains are
+    accepted at SMTP time; the validator chains to the outbound overlimit
+    throttle on accept.  When the bridge is absent, chkuser plus the standalone
+    overlimit throttle are used exactly as before.  Backwards-compatible.
+
+ -- Brian O'Reilly <fade@deepsky.com>  Thu, 04 Jun 2026 12:00:00 +0000
+
 dsmr-qmail-run (1.0-9) trixie; urgency=low
 
   * qmail-submission/run: select SMTP-AUTH backend at exec time.

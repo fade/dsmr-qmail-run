@@ -25,12 +25,25 @@ fi
 
 export SMTPD_GREETDELAY=5
 export DROP_PRE_GREET=1
-export CHKUSER_START=ALWAYS
 export FORCEAUTHMAILFROM=1
 
-if [ -x "$QMAILDIR/bin/rcptcheck-overlimit" ]; then
-    export RCPTCHECK="$QMAILDIR/bin/rcptcheck-overlimit"
+# Recipient validation gate.
+#
+# When localfirst-rcptcheck (from dsmr-localfirst) is installed it is the sole
+# gate: it accepts system-user recipients on hybrid domains that chkuser cannot
+# see, validates vpopmail recipients via vrcptcheck, and chains to the outbound
+# overlimit throttle on accept.  chkuser is therefore left off.  When the bridge
+# is absent, fall back to chkuser for vpopmail recipient validation plus the
+# standalone overlimit throttle, exactly as before.
+if [ -x "$QMAILDIR/bin/localfirst-rcptcheck" ]; then
+    export RCPTCHECK="$QMAILDIR/bin/localfirst-rcptcheck"
     export RCPTCHECKRELAYCLIENT=1
+else
+    export CHKUSER_START=ALWAYS
+    if [ -x "$QMAILDIR/bin/rcptcheck-overlimit" ]; then
+        export RCPTCHECK="$QMAILDIR/bin/rcptcheck-overlimit"
+        export RCPTCHECKRELAYCLIENT=1
+    fi
 fi
 
 exec /usr/bin/softlimit -m "$SOFTLIMIT" \

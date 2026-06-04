@@ -11,12 +11,21 @@ TCPRULES_DIR="$QMAILDIR/control"
 export SMTPAUTH="!"
 export SMTPD_GREETDELAY=3
 export DROP_PRE_GREET=1
-export CHKUSER_START=ALWAYS
 export FORCEAUTHMAILFROM=1
 
-if [ -x "$QMAILDIR/bin/rcptcheck-overlimit" ]; then
-    export RCPTCHECK="$QMAILDIR/bin/rcptcheck-overlimit"
+# Recipient validation gate (see qmail-smtpd/run for the rationale).  On the
+# submission port localfirst-rcptcheck accepts external relay targets, validates
+# local recipients, and chains to the outbound overlimit throttle on accept, so
+# RCPTCHECKRELAYCLIENT must remain set for authenticated submitters.
+if [ -x "$QMAILDIR/bin/localfirst-rcptcheck" ]; then
+    export RCPTCHECK="$QMAILDIR/bin/localfirst-rcptcheck"
     export RCPTCHECKRELAYCLIENT=1
+else
+    export CHKUSER_START=ALWAYS
+    if [ -x "$QMAILDIR/bin/rcptcheck-overlimit" ]; then
+        export RCPTCHECK="$QMAILDIR/bin/rcptcheck-overlimit"
+        export RCPTCHECKRELAYCLIENT=1
+    fi
 fi
 
 # Authentication backend selection.
