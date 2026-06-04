@@ -1,3 +1,16 @@
+dsmr-qmail-run (1.0-11) trixie; urgency=low
+
+  * Become the system mail-transport-agent.  Provide/Conflict/Replace the
+    mail-transport-agent virtual package so installing the DSMR qmail stack
+    displaces the default Debian MTA (Exim) and satisfies dependents of
+    "default-mta | mail-transport-agent".
+  * Ship /usr/sbin/sendmail (-> qmail-sendmail) as required of any MTA, plus
+    best-effort /usr/bin/mailq (-> qmail-qstat) and a /usr/sbin/newaliases
+    no-op stub (qmail has no /etc/aliases database).  See debian/TODO for the
+    planned faithful mailq/newaliases implementations.
+
+ -- Brian O'Reilly <fade@deepsky.com>  Thu, 04 Jun 2026 17:00:00 +0000
+
 dsmr-qmail-run (1.0-10) trixie; urgency=low
 
   * qmail-smtpd/run, qmail-submission/run: select the recipient validation

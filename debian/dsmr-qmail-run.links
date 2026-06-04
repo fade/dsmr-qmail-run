@@ -1,0 +1,5 @@
+# Debian MTA commands. Targets are provided by the qmail dependency.
+# /usr/sbin/sendmail is required of any MTA (Policy 11.6); mailq is a
+# best-effort approximation onto qmail's queue-stat tool (see debian/TODO).
+usr/sbin/qmail-sendmail usr/sbin/sendmail
+usr/sbin/qmail-qstat usr/bin/mailq

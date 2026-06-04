@@ -1,0 +1,10 @@
+#!/bin/sh
+# newaliases — best-effort approximation for the DSMR qmail MTA.
+#
+# qmail does not use /etc/aliases; mail aliasing is done with ~alias/.qmail
+# files and qmail control files, so there is no alias database to rebuild.
+# This stub exists so callers (and Debian's MTA expectations) that invoke
+# /usr/sbin/newaliases after editing aliases do not fail.  A faithful
+# implementation (e.g. fastforward over /etc/aliases) is future work; see
+# /usr/share/doc/dsmr-qmail-run/TODO or the package's debian/TODO.
+exit 0

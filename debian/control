@@ -13,12 +13,18 @@ Depends: ${misc:Depends},
  daemontools-run,
  vpopmail (>= 5.6.13),
  ucspi-tcp6 | ucspi-tcp
-Conflicts: qmail-run
-Replaces: qmail-run
+Provides: mail-transport-agent
+Conflicts: qmail-run, mail-transport-agent
+Replaces: qmail-run, mail-transport-agent
 Description: runtime service configuration for the DSMR qmail stack
  Provides supervised service trees for qmail-send, qmail-smtpd (port 25),
  and qmail-submission (port 587 with authentication), along with the
  qmailctl management script and systemd integration via daemontools-run.
+ .
+ This package makes the DSMR qmail stack the system's mail-transport-agent:
+ installing it removes the default Debian MTA (Exim) and provides the standard
+ /usr/sbin/sendmail (plus best-effort mailq and newaliases) so programs that
+ depend on "default-mta | mail-transport-agent" are satisfied by qmail.
  .
  On install, this package:
   - Removes the old qmail-verify service (not used by this stack)
