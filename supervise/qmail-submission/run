@@ -13,11 +13,14 @@ export SMTPD_GREETDELAY=3
 export DROP_PRE_GREET=1
 export FORCEAUTHMAILFROM=1
 
-# Recipient validation gate (see qmail-smtpd/run for the rationale).  On the
-# submission port localfirst-rcptcheck accepts external relay targets, validates
-# local recipients, and chains to the outbound overlimit throttle on accept, so
-# RCPTCHECKRELAYCLIENT must remain set for authenticated submitters.
-if [ -x "$QMAILDIR/bin/localfirst-rcptcheck" ]; then
+# Recipient validation gate (see qmail-smtpd/run for the rationale).  Enabled
+# only by control/localfirst (first line "1"); installing the binary alone never
+# changes validation.  On the submission port localfirst-rcptcheck accepts
+# external relay targets, validates local recipients, and chains to the outbound
+# overlimit throttle on accept, so RCPTCHECKRELAYCLIENT must remain set for
+# authenticated submitters.
+if [ -x "$QMAILDIR/bin/localfirst-rcptcheck" ] && \
+   [ "$(head -1 "$QMAILDIR/control/localfirst" 2>/dev/null)" = "1" ]; then
     export RCPTCHECK="$QMAILDIR/bin/localfirst-rcptcheck"
     export RCPTCHECKRELAYCLIENT=1
 else

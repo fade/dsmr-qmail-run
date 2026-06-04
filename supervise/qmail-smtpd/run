@@ -29,13 +29,16 @@ export FORCEAUTHMAILFROM=1
 
 # Recipient validation gate.
 #
-# When localfirst-rcptcheck (from dsmr-localfirst) is installed it is the sole
-# gate: it accepts system-user recipients on hybrid domains that chkuser cannot
-# see, validates vpopmail recipients via vrcptcheck, and chains to the outbound
-# overlimit throttle on accept.  chkuser is therefore left off.  When the bridge
-# is absent, fall back to chkuser for vpopmail recipient validation plus the
+# localfirst-rcptcheck (from dsmr-localfirst) supersedes chkuser as the sole
+# recipient gate ONLY when explicitly enabled by control/localfirst (first line
+# "1").  Installing the binary must never change recipient validation on an
+# upgrade — a host opts into system-first routing deliberately.  When enabled it
+# accepts system-user and qmail-extension recipients that chkuser cannot see,
+# validates vpopmail recipients, and chains to the outbound overlimit throttle.
+# Otherwise (the default) chkuser validates vpopmail recipients plus the
 # standalone overlimit throttle, exactly as before.
-if [ -x "$QMAILDIR/bin/localfirst-rcptcheck" ]; then
+if [ -x "$QMAILDIR/bin/localfirst-rcptcheck" ] && \
+   [ "$(head -1 "$QMAILDIR/control/localfirst" 2>/dev/null)" = "1" ]; then
     export RCPTCHECK="$QMAILDIR/bin/localfirst-rcptcheck"
     export RCPTCHECKRELAYCLIENT=1
 else
