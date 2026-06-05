@@ -1,0 +1,51 @@
+#+TITLE: qmailctl
+
+* NAME
+qmailctl - control the supervised DSMR qmail services
+
+* SYNOPSIS
+*qmailctl* /command/
+
+* DESCRIPTION
+*qmailctl* starts, stops, and inspects the DSMR qmail service trees managed by
+daemontools (=svscan=). The three services — =qmail-send= (the queue/delivery
+engine), =qmail-smtpd= (inbound SMTP on port 25), and =qmail-submission=
+(authenticated submission on port 587) — live under =/etc/qmail/<svc>/= and are
+supervised via =/etc/service/<svc>= symlinks. =qmailctl= is a thin, legible
+wrapper over the daemontools =svc= and =svstat= commands plus qmail's queue
+tools.
+
+* COMMANDS
+- *start* :: Bring all qmail services up (=svc -u=).
+- *stop* :: Take all qmail services down (=svc -d=).
+- *restart* :: Restart all services (=svc -t= on the running ones).
+- *stat* :: Show each service's supervise status and a queue summary
+  (=qmail-qstat=).
+- *pause* :: Pause services — keep accepting connections but hold delivery
+  (=svc -p=).
+- *cont* :: Resume paused services (=svc -c=).
+- *doqueue* | *flush* :: Tell =qmail-send= to deliver queued messages now
+  (=svc -a=, ALRM).
+- *reload* | *hup* :: Send HUP to =qmail-send= so it re-reads =control/locals=
+  and =control/virtualdomains= without a full restart.
+- *cdb* :: Rebuild =control/tcp.smtp.cdb= and =control/tcp.submission.cdb= from
+  their =tcp.smtp= / =tcp.submission= text sources (=tcprules=).
+- *help* :: Print the command summary.
+
+* FILES
+- =/etc/service/{qmail-send,qmail-smtpd,qmail-submission}= :: supervise symlinks
+  scanned by =svscan= (daemontools-run).
+- =/etc/qmail/<svc>/run= :: the run script for each service (installed from
+  =dsmr-qmail-run=); it execs the qmail binary with the service's environment.
+- =/var/qmail/control/= :: qmail control files the run scripts read at exec time.
+
+* SEE ALSO
+*svc*(8), *svstat*(8), *supervise*(8), *qmail-send*(8), *qmail-smtpd*(8),
+*sendmail*(8), *newaliases*(8)
+
+The DSMR mail stack's theory of operation, service wiring, and debugging hints
+are in the /dsmr-qmail-run/ info manual (=info dsmr-qmail-run=) and the stack
+documentation website.
+
+* AUTHOR
+Brian O'Reilly <fade@deepsky.com>

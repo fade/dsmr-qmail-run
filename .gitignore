@@ -1,3 +1,10 @@
+# generated documentation — org-mode under doc/ is the source of truth
+/man/*.8
+/man/*.1
+/doc/dsmr-qmail-run.texi
+/doc/dsmr-qmail-run.info
+/doc/dsmr-qmail-run.html
+
 debian/.debhelper/
 debian/dsmr-qmail-run/
 debian/debhelper-build-stamp

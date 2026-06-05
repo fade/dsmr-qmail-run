@@ -1,0 +1,25 @@
+#+TITLE: mailq
+
+* NAME
+mailq - summarise the DSMR qmail outbound queue
+
+* SYNOPSIS
+*mailq*
+
+* DESCRIPTION
+On a DSMR mail host =/usr/bin/mailq= is a symlink to =/usr/sbin/qmail-qstat=
+(provided by the *qmail* package). It is a best-effort approximation of the
+traditional =mailq= command: where sendmail's =mailq= lists each queued message,
+=qmail-qstat= reports the queue *counts* — how many messages are in the queue and
+how many have been seen by =qmail-send=. A queue climbing into the hundreds or
+thousands of mostly-undeliverable messages is usually backscatter or a
+compromised account (see *dsmr-email-admin*(8) =reputation audit=).
+
+For a per-message listing use *qmail-qread*(8); to force a delivery run use
+=qmailctl doqueue=.
+
+* SEE ALSO
+*qmail-qstat*(8), *qmail-qread*(8), *qmailctl*(8), *dsmr-email-admin*(8)
+
+* AUTHOR
+Brian O'Reilly <fade@deepsky.com>

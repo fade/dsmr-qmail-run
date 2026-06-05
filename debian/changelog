@@ -1,3 +1,18 @@
+dsmr-qmail-run (1.0-14) trixie; urgency=low
+
+  * Ship system documentation, generated from an org-mode source of truth at
+    build time. Adds man pages for the previously-undocumented commands —
+    qmailctl(8), sendmail(8), mailq(1), newaliases(8) — authored in
+    doc/man/*.org (pandoc → groff), and a GNU info manual + HTML page
+    (doc/dsmr-qmail-run.org → emacs ox-texinfo/ox-html) covering the theory of
+    operation: daemontools supervision, the three services, how the run scripts
+    wire SPF/TLS/AUTH/the recipient gate/outbound signing, configuration, and
+    debugging hints. The lintian no-manual-page overrides are dropped.
+  * Build-Depends on emacs-nox | emacs, texinfo, pandoc (generators only — the
+    installed package ships the static man/info/HTML and needs none of them).
+
+ -- Brian O'Reilly <fade@deepsky.com>  Fri, 05 Jun 2026 13:03:37 +0000
+
 dsmr-qmail-run (1.0-13) trixie; urgency=medium
 
   * newaliases: rebuild /etc/aliases.cdb instead of doing nothing. The previous

@@ -1,5 +1,13 @@
 #!/usr/bin/make -f
 
+# Documentation is generated from the org-mode source of truth at build time:
+#   doc/man/<name>.<sec>.org -> man/<name>.<sec>      (pandoc, groff man)
+#   doc/dsmr-qmail-run.org   -> dsmr-qmail-run.info   (emacs ox-texinfo + makeinfo)
+#                            -> .html                 (emacs ox-html, doc website)
+# Generators (pandoc, emacs, texinfo) are Build-Depends only.
+EMACS ?= emacs
+TOPIC = doc/dsmr-qmail-run
+
 %:
 	dh $@
 
@@ -7,6 +15,24 @@ override_dh_auto_build:
 	# Make all run scripts and helper scripts executable before installation.
 	find supervise -name run -exec chmod 755 {} +
 	chmod 755 scripts/qmailctl scripts/newaliases
+	# Generate man pages, the GNU info manual, and the HTML doc page from org.
+	mkdir -p man
+	set -e; for m in doc/man/*.org; do \
+	    base=$$(basename "$$m" .org); \
+	    name=$${base%.*}; sec=$${base##*.}; \
+	    pandoc -f org -t man -s \
+	        -M title="$$name" -M section="$$sec" -M date="2026" \
+	        -M header="DSMR mail stack" -M footer="dsmr-qmail-run" \
+	        "$$m" -o "man/$$base"; \
+	done
+	$(EMACS) --batch -Q \
+	    --eval "(require 'ox-texinfo)" \
+	    --eval "(with-current-buffer (find-file-noselect \"$(TOPIC).org\") (org-texinfo-export-to-texinfo))"
+	makeinfo --no-split "$(TOPIC).texi" -o "$(TOPIC).info"
+	$(EMACS) --batch -Q \
+	    --eval "(require 'ox-html)" \
+	    --eval "(setq org-html-validation-link nil)" \
+	    --eval "(with-current-buffer (find-file-noselect \"$(TOPIC).org\") (org-html-export-to-html))"
 
 override_dh_auto_install:
 	# Install supervise scripts to /usr/lib/dsmr-qmail-run/supervise/
@@ -23,3 +49,6 @@ override_dh_auto_install:
 	# debian/dsmr-qmail-run.links.
 	install -D -m 755 scripts/newaliases \
 		debian/dsmr-qmail-run/usr/sbin/newaliases
+
+override_dh_auto_clean:
+	rm -f man/*.8 man/*.1 "$(TOPIC).texi" "$(TOPIC).info" "$(TOPIC).html"
