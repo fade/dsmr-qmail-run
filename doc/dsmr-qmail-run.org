@@ -1,0 +1,164 @@
+#+TITLE: dsmr-qmail-run — Running the DSMR mail stack
+#+AUTHOR: Brian O'Reilly
+#+LANGUAGE: en
+#+OPTIONS: toc:2 num:nil
+#+TEXINFO_DIR_CATEGORY: Mail
+#+TEXINFO_DIR_TITLE: dsmr-qmail-run: (dsmr-qmail-run).
+#+TEXINFO_DIR_DESC: Runtime service configuration that activates the DSMR mail stack
+#+TEXINFO_FILENAME: dsmr-qmail-run.info
+
+* TL;DR
+:PROPERTIES:
+:DESCRIPTION: The package that turns the installed binaries into a running MTA.
+:END:
+
+=dsmr-qmail-run= is the package that *activates* the DSMR mail stack. The other
+packages install binaries and libraries; this one supplies the supervised
+service trees, the management command, and the Debian MTA commands that make the
+host actually send and receive mail.
+
+It claims the system =mail-transport-agent= role (=Provides=/=Conflicts=/=Replaces=
+=mail-transport-agent=), so installing it displaces the default Debian MTA
+(Exim). It ships:
+
+- three daemontools service trees — =qmail-send=, =qmail-smtpd= (port 25),
+  =qmail-submission= (port 587);
+- *qmailctl(8)*, the start/stop/inspect command;
+- the Policy MTA commands =/usr/sbin/sendmail= and =/usr/bin/mailq= (symlinks to
+  qmail tools) and =/usr/sbin/newaliases= (rebuilds =/etc/aliases.cdb=);
+- the run scripts that wire SPF, TLS, AUTH, the recipient gate, and the outbound
+  signing hook from qmail control files at exec time.
+
+* Theory of operation
+:PROPERTIES:
+:DESCRIPTION: Supervision, the three services, and how the run scripts wire the stack.
+:END:
+
+** Supervision
+Services are supervised by *daemontools* (=svscan= via =daemontools-run=). Each
+service is a directory =/etc/qmail/<svc>/= containing a =run= script (and a
+=log/run= for its logger); a symlink =/etc/service/<svc>= makes =svscan= watch
+it. The package postinst installs/refreshes the trees from
+=/usr/lib/dsmr-qmail-run/supervise/=, retires the unused =qmail-verify= service,
+ensures =daemontools-run= is enabled, and brings the services up (on a fresh
+install) or reloads the run scripts (on upgrade). =qmailctl= is the operator's
+handle on =svc=/=svstat=.
+
+** The three services
+| Service            | Port | Role                                                       |
+|--------------------+------+------------------------------------------------------------|
+| =qmail-send=       |    — | The queue and delivery engine: qmail-local (system),       |
+|                    |      | qmail-remote (outbound), and the outbound filter hook.     |
+| =qmail-smtpd=      |   25 | Inbound SMTP from the world; the recipient gate runs here. |
+| =qmail-submission= |  587 | Authenticated submission from your users' MUAs.            |
+
+** What the run scripts wire
+The smtpd and submission =run= scripts set qmail-smtpd's environment from control
+files at exec time (so changing a control file + =qmailctl restart= is all it
+takes): pre-greeting defences (=SMTPD_GREETDELAY=, =DROP_PRE_GREET=), HELO DNS
+checks, opportunistic STARTTLS when =control/servercert.pem= exists, SPF
+(=control/spfbehavior=), optional qmail-spp plugins, and the *recipient gate*.
+
+The recipient gate is the key wiring: with =control/localfirst= set to =1= the
+scripts export =RCPTCHECK=/var/qmail/bin/localfirst-rcptcheck= (system-first
+hybrid routing, see *dsmr-localfirst*); otherwise they fall back to chkuser plus
+the =rcptcheck-overlimit= throttle. Submission additionally requires AUTH
+(=SMTPAUTH="!"=) via =checkpassword-dovecot= (or =vchkpw=), and sets
+=RCPTCHECKRELAYCLIENT=1= so authenticated submitters are still validated.
+
+The =qmail-send= run script turns on outbound DKIM signing when
+=control/filterargs= exists, by setting =QMAILREMOTE=/var/qmail/bin/spawn-filter=
+(which runs =qmail-dkim= per the filterargs entries).
+
+* Usage examples
+:PROPERTIES:
+:DESCRIPTION: Driving the services and the MTA commands.
+:END:
+
+: # qmailctl stat                 # service status + queue summary
+: # qmailctl restart              # re-exec run scripts (picks up control changes)
+: # qmailctl doqueue              # deliver queued mail now
+: # qmailctl cdb                  # rebuild tcp.smtp.cdb / tcp.submission.cdb
+: # qmailctl reload               # re-read locals/virtualdomains (no restart)
+
+Enable system-first recipient routing, then restart so the run scripts re-exec:
+
+: # echo 1 > /var/qmail/control/localfirst
+: # qmailctl restart
+: # ps auxe | grep -m1 '[q]mail-smtpd' | tr ' ' '\n' | grep -E 'RCPTCHECK=|CHKUSER_START='
+
+Rebuild the alias database after editing =/etc/aliases= (see *newaliases(8)*):
+
+: # newaliases
+
+* Configuration
+:PROPERTIES:
+:DESCRIPTION: Control files the run scripts and services read.
+:END:
+
+All under =/var/qmail/control/= unless noted.
+
+- =localfirst= :: First line =1= switches the RCPT gate to localfirst-rcptcheck.
+- =servercert.pem= :: TLS cert+key; its presence makes qmail-smtpd advertise
+  STARTTLS on 25 and 587.
+- =spfbehavior= :: SPF strictness on inbound mail.
+- =smtpplugins= + =plugins/= :: enable qmail-spp (both must exist).
+- =filterargs= :: enable outbound DKIM signing via spawn-filter → qmail-dkim.
+- =concurrencyincoming=, =softlimit= :: connection cap and per-process memory cap
+  read by the smtpd/submission run scripts.
+- =tcp.smtp= / =tcp.submission= → =*.cdb= :: tcpserver access rules; rebuild with
+  =qmailctl cdb=.
+- =/etc/aliases= → =/etc/aliases.cdb= :: system aliases; rebuild with =newaliases=.
+
+* Extension points
+:PROPERTIES:
+:DESCRIPTION: Where to adjust the running stack.
+:END:
+
+- *Swap the recipient gate* without touching binaries: toggle =control/localfirst=
+  and restart. Off ⇒ chkuser; on ⇒ localfirst-rcptcheck.
+- *Add a relay client* by IP: edit =tcp.smtp= (set =RELAYCLIENT=), =qmailctl cdb=.
+- *Turn on outbound DKIM*: create =control/filterargs= (the qmail-send run script
+  then routes outbound through spawn-filter); manage keys with
+  *dsmr-email-admin(8)*.
+- *Local run-script overrides*: the run scripts are plain =/bin/sh= under
+  =/etc/qmail/<svc>/run=; edit and =qmailctl restart=. (A package upgrade
+  reinstalls them — keep host-specific changes minimal or in control files.)
+
+* Gotchas and debugging
+:PROPERTIES:
+:DESCRIPTION: Why the stack might not run, and how to tell.
+:END:
+
+- *Services not running.* Check =qmailctl stat= and that =daemontools-run= is
+  active (=systemctl status daemontools-run=). A =run= script that exits
+  immediately is restarted forever by supervise — check its output in the
+  service's log (=/var/log/qmail/<svc>/= or =svstat=).
+- *qmail-smtpd dies "failed to map segment".* =control/softlimit= is too low for
+  OpenSSL3/krb5; raise it (=dsmr-email-admin fix softlimit=).
+- *"421 cannot_read_controls" on connect.* qmail-spp was triggered without a
+  =control/smtpplugins= file. =ENABLE_SPP= must be unset unless both
+  =control/smtpplugins= and the =plugins/= dir exist.
+- *Recipient changes had no effect.* The run scripts read control files at exec
+  time only — =qmailctl restart= (not just =reload=) to pick up
+  =RCPTCHECK=/=localfirst=/=softlimit= changes. =reload= (HUP) only re-reads
+  =locals=/=virtualdomains=.
+- *A newly-added /etc/aliases entry is rejected.* Run =newaliases= to rebuild the
+  cdb; with localfirst on, an alias missing from =/etc/aliases.cdb= is rejected
+  at RCPT (see *newaliases(8)*, *system-identity(8)*).
+- *Mail still goes through Exim.* The MTA takeover only happens on install; if
+  Exim lingers, confirm =dsmr-qmail-run= is installed and =/usr/sbin/sendmail=
+  points at =qmail-sendmail=.
+
+* Commands
+:PROPERTIES:
+:DESCRIPTION: Manual pages shipped with this package.
+:END:
+
+- *qmailctl(8)* — control the supervised services.
+- *sendmail(8)* — the sendmail-compatible submission interface.
+- *mailq(1)* — outbound queue summary.
+- *newaliases(8)* — rebuild =/etc/aliases.cdb=.
+
+See also *dsmr-localfirst* and *dsmr-email-admin(8)*, and the DSMR stack
+documentation website for cross-component theory of operation.

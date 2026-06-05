@@ -1,0 +1,30 @@
+#+TITLE: sendmail
+
+* NAME
+sendmail - DSMR qmail's sendmail-compatible mail submission interface
+
+* SYNOPSIS
+*/usr/sbin/sendmail* [ /options/ ] [ /recipient/... ]
+
+* DESCRIPTION
+On a DSMR mail host =/usr/sbin/sendmail= is a symlink to =/usr/sbin/qmail-sendmail=
+(provided by the *qmail* package), the sendmail-compatible front end qmail ships
+so that programs expecting the traditional MTA interface — cron, mailx, PHP, web
+applications — can inject mail. =dsmr-qmail-run= installs the symlink and claims
+the =mail-transport-agent= role (Debian Policy 11.6), displacing the default MTA
+(Exim).
+
+It accepts the common sendmail options (=-t= read recipients from the headers,
+=-f= set the envelope sender, =-i=/=-oi= ignore a lone dot, =-bp= list the queue
+like *mailq(1)*). The message is handed to =qmail-inject= / =qmail-queue= for
+delivery by =qmail-send=; it is not a real sendmail and does not read
+=sendmail.cf=.
+
+* SEE ALSO
+*qmail-inject(8)*, *qmail-send(8)*, *mailq(1)*, *newaliases(8)*, *qmailctl(8)*
+
+See the /dsmr-qmail-run/ info manual (=info dsmr-qmail-run=) for how submitted
+mail flows through the stack.
+
+* AUTHOR
+Brian O'Reilly <fade@deepsky.com>

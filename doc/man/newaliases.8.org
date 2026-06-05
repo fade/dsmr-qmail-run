@@ -1,0 +1,32 @@
+#+TITLE: newaliases
+
+* NAME
+newaliases - rebuild the DSMR qmail alias database from /etc/aliases
+
+* SYNOPSIS
+*newaliases*
+
+* DESCRIPTION
+qmail has no native =/etc/aliases=; aliasing is normally done with =~alias/.qmail=
+files. But a DSMR host MAY route system aliases through fastforward's
+=~alias/.qmail-default= catch-all (=| fastforward /etc/aliases.cdb=), in which
+case =/etc/aliases.cdb= is the live alias database.
+
+=/usr/sbin/newaliases= rebuilds that database. When fastforward's converter
+(=qmail-newaliases=, from the *fastforward* package — Recommended by
+=dsmr-qmail-run=) is installed, =newaliases= delegates to it: it reads the
+sendmail-style =/etc/aliases= and rebuilds the world-readable =/etc/aliases.cdb=
+via a temp-file rename. When fastforward is absent, or there is no =/etc/aliases=
+to compile, =newaliases= is a best-effort no-op so callers do not fail.
+
+*Run it after editing* =/etc/aliases=. With *dsmr-localfirst* enabled, the
+RCPT-time validator checks recipients against =/etc/aliases.cdb=, so an alias
+added to the text file but not compiled into the cdb is *rejected at SMTP time*
+until =newaliases= is run. See *system-identity(8)*.
+
+* SEE ALSO
+*qmail-newaliases(1)*, *fastforward(1)*, *setforward(1)*, *system-identity(8)*,
+*qmailctl(8)*
+
+* AUTHOR
+Brian O'Reilly <fade@deepsky.com>
