@@ -5,18 +5,17 @@ dsmr-qmail-run claims the mail-transport-agent role and ships:
 
   * /usr/sbin/sendmail  -> /usr/sbin/qmail-sendmail   (required; faithful)
   * /usr/bin/mailq      -> /usr/sbin/qmail-qstat      (best-effort)
-  * /usr/sbin/newaliases : no-op stub                 (best-effort)
+  * /usr/sbin/newaliases -> fastforward qmail-newaliases (rebuilds aliases.cdb)
 
-The two best-effort commands are approximations and should be improved:
+mailq remains an approximation and should be improved:
 
   - mailq: qmail-qstat reports queue counts, not the per-message mailq(8)
     listing.  A wrapper that renders qmail-qread output in mailq format would
     be a faithful replacement.
 
-  - newaliases: qmail does not use /etc/aliases (aliasing is ~alias/.qmail).
-    If /etc/aliases compatibility is wanted, integrate fastforward's
-    newaliases (fastforward is already Suggested by the qmail package) and
-    point /usr/sbin/newaliases at it instead of the no-op stub.
+newaliases now delegates to fastforward's qmail-newaliases (Recommended by this
+package) when present, rebuilding /etc/aliases.cdb from /etc/aliases; it is a
+no-op only when fastforward is absent or there is no /etc/aliases.
 
 Until then the stubs satisfy "default-mta | mail-transport-agent" dependents
 without breaking programs that call these commands.

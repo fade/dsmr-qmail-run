@@ -1,3 +1,18 @@
+dsmr-qmail-run (1.0-13) trixie; urgency=medium
+
+  * newaliases: rebuild /etc/aliases.cdb instead of doing nothing. The previous
+    no-op stub left the alias database stale, which became a hazard once
+    dsmr-localfirst began rejecting unknown recipients at RCPT time by checking
+    the fastforward cdb: an alias added to /etc/aliases but never compiled into
+    /etc/aliases.cdb would be rejected at SMTP time. newaliases now delegates
+    to fastforward's qmail-newaliases (when installed) to recompile the
+    world-readable cdb from /etc/aliases, and stays a no-op only when
+    fastforward is absent or there is no /etc/aliases.
+  * Recommend fastforward so the alias compiler is present by default on stack
+    hosts that route system aliases through the fastforward catch-all.
+
+ -- Brian O'Reilly <fade@deepsky.com>  Fri, 05 Jun 2026 02:06:42 +0000
+
 dsmr-qmail-run (1.0-12) trixie; urgency=high
 
   * Make system-first recipient validation opt-in.  The smtpd and submission run

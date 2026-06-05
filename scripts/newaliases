@@ -1,10 +1,29 @@
 #!/bin/sh
-# newaliases — best-effort approximation for the DSMR qmail MTA.
+# newaliases — rebuild /etc/aliases.cdb from /etc/aliases for the DSMR qmail MTA.
 #
-# qmail does not use /etc/aliases; mail aliasing is done with ~alias/.qmail
-# files and qmail control files, so there is no alias database to rebuild.
-# This stub exists so callers (and Debian's MTA expectations) that invoke
-# /usr/sbin/newaliases after editing aliases do not fail.  A faithful
-# implementation (e.g. fastforward over /etc/aliases) is future work; see
-# /usr/share/doc/dsmr-qmail-run/TODO or the package's debian/TODO.
+# qmail has no native /etc/aliases: aliasing is normally done with ~alias/.qmail
+# files. But a host MAY route system aliases through fastforward's
+# ~alias/.qmail-default catch-all (| fastforward /etc/aliases.cdb), in which case
+# /etc/aliases.cdb is the live alias database. With dsmr-localfirst enabled the
+# RCPT-time validator also checks recipients against that cdb, so it MUST track
+# /etc/aliases — an alias added to the text file but not compiled into the cdb is
+# rejected at SMTP time.
+#
+# When fastforward's converter is installed (the qmail-newaliases binary from the
+# fastforward package), delegate to it: it reads the sendmail-style /etc/aliases
+# and rebuilds the world-readable /etc/aliases.cdb via a temp-file rename. When
+# fastforward is absent, or there is no /etc/aliases to compile, stay a
+# best-effort no-op so MTA callers that invoke newaliases do not fail on a host
+# that does not use /etc/aliases at all.
+set -eu
+
+for ff in /usr/sbin/qmail-newaliases /var/lib/qmail/bin/newaliases; do
+    if [ -x "$ff" ]; then
+        # Nothing to compile without a source file — succeed quietly.
+        [ -f /etc/aliases ] || exit 0
+        exec "$ff" "$@"
+    fi
+done
+
+# fastforward not installed: qmail aliasing is via ~alias/.qmail; nothing to do.
 exit 0
