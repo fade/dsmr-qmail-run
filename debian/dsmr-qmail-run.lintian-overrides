@@ -1,6 +1,6 @@
-# The MTA commands are best-effort (sendmail/mailq are symlinks to qmail tools,
-# newaliases is a no-op stub since qmail has no /etc/aliases). Man pages for
-# them are future work, recorded in debian/TODO.
+# The MTA commands have no man pages here (sendmail/mailq are symlinks to qmail
+# tools; newaliases delegates to fastforward's qmail-newaliases to rebuild
+# /etc/aliases.cdb). Man pages for them are future work, recorded in debian/TODO.
 dsmr-qmail-run: no-manual-page [usr/sbin/sendmail]
 dsmr-qmail-run: no-manual-page [usr/bin/mailq]
 dsmr-qmail-run: no-manual-page [usr/sbin/newaliases]
